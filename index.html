@@ -465,26 +465,205 @@ hr.sep{
     prevInfo.textContent = `Grid: ${rows}×${cols} • Words: ${words.length}`;
   }
 
-  // Student HTML (still minimal data dump in this version)
   function studentHTML(data, title){
-    const safeJson = JSON.stringify(data).replace(/</g,'\\u003c').replace(/>/g,'\\u003e');
-    const safeTitle = esc(title||'Word Search');
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeTitle}</title></head>
-<body style="font-family:system-ui;background:#0b1020;color:#e9eeff;padding:16px">
-<h2>${safeTitle}</h2>
-<p>Generated puzzle data (playable version can be expanded next).</p>
-<pre>${safeJson}</pre>
-</body></html>`;
-  }
+  const safeTitle = esc(title || 'Word Search');
+  const payload = JSON.stringify(data).replace(/</g,'\\u003c');
 
-  function download(name, text){
-    const blob=new Blob([text],{type:'text/html;charset=utf-8'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url; a.download=name;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeTitle}</title>
+
+<style>
+  :root{
+    --bg:#f4f6f5;
+    --panel:#ffffff;
+    --line:#d8e0dc;
+    --muted:#6f7f78;
+    --text:#24312c;
+    --accent:#8fb3a2;
+    --accentSoft:#e3efe9;
+    --found:#8fb3a2;
+    --active:#cfe6dc;
+    --radius:16px;
   }
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  header{
+    padding:16px 14px;
+    background:linear-gradient(180deg,#fff,#f6faf8);
+    border-bottom:1px solid var(--line);
+    text-align:center;
+  }
+  header h1{
+    margin:0;
+    font-size:1.2rem;
+    font-weight:900;
+    letter-spacing:.2px;
+  }
+  header .sub{
+    margin-top:6px;
+    font-size:.95rem;
+    color:var(--muted);
+  }
+  main{
+    max-width:980px;
+    margin:0 auto;
+    padding:16px;
+    display:grid;
+    gap:14px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:0 10px 24px rgba(0,0,0,.06);
+    overflow:hidden;
+  }
+  .cardHd{
+    padding:12px 14px;
+    background:#f0f3f2;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .status{
+    font-size:.95rem;
+    color:var(--muted);
+  }
+  .btn{
+    border:1px solid var(--line);
+    background:var(--accentSoft);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:14px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .btn:hover{ background:#d9ebe3; }
+  .btn:active{ transform:translateY(1px); }
+
+  .gridWrap{
+    padding:12px;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .grid{
+    display:grid;
+    gap:6px;
+    user-select:none;
+    touch-action:none;
+    width:max-content;
+    margin:0 auto;
+  }
+  .cell{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:12px;
+    background:#f7fbf9;
+    border:1px solid var(--line);
+    font-weight:900;
+    letter-spacing:.4px;
+  }
+  .cell.active{ background:var(--active); }
+  .cell.found{ background:var(--found); color:#fff; }
+
+  .wordsWrap{ padding:12px 14px 14px; }
+  .wordsTitle{ font-weight:900; margin-bottom:10px; }
+  .words{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .word{
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-weight:800;
+    font-size:.95rem;
+  }
+  .word.found{
+    background:var(--found);
+    color:#fff;
+    text-decoration:line-through;
+  }
+  .hint{
+    font-size:.9rem;
+    color:var(--muted);
+    line-height:1.35;
+  }
+</style>
+</head>
+
+<body>
+<header>
+  <h1>${safeTitle}</h1>
+  <div class="sub">Drag across letters to find words (mouse or touch).</div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="cardHd">
+      <div class="status" id="status">Find all the words.</div>
+      <button class="btn" id="btnReset" type="button">Reset</button>
+    </div>
+
+    <div class="gridWrap">
+      <div id="grid" class="grid" aria-label="Word search grid"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardHd">
+      <div style="font-weight:900;">Words to find</div>
+      <div class="status" id="progress">0 / 0</div>
+    </div>
+    <div class="wordsWrap">
+      <div class="words" id="words"></div>
+      <div class="hint" style="margin-top:12px;">
+        Tip: You can find words forwards or backwards. Lines can be horizontal, vertical, or diagonal.
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const DATA = ${payload};
+
+  const gridEl = document.getElementById('grid');
+  const wordsEl = document.getElementById('words');
+  const statusEl = document.getElementById('status');
+  const progressEl = document.getElementById('progress');
+  const btnReset = document.getElementById('btnReset');
+
+  const rows = DATA.grid.length;
+  const cols = DATA.grid[0].length;
+
+  // State
+  let startCell = null;
+  let activeCells = [];
+  const foundWordSet = new Set();
+  const foundCellKeys = new Set(); // "r,c"
+  let wordState = {}; // word -> bool
+
+  function keyOf(r,c){ return r + "," + c; }
+
+  function buildWords(){
+    wordsEl.innerHTML = '';
+    wordState = {};
+    DATA.words.forEach(w=>{
+      wordState[w]=false;
+
 
   function build(){
     slugEl.value = sanitizeSlug(slugEl.value);
