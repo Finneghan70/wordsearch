@@ -7,17 +7,17 @@
 
 <style>
 :root{
-  /* Core palette – calm, desaturated */
-  --bg: #f4f6f5;              /* soft warm grey */
-  --panel: #ffffff;           /* clean paper white */
-  --panel-alt: #f0f3f2;       /* subtle section contrast */
-  --line: #d8e0dc;            /* soft sage border */
-  --muted: #6f7f78;           /* eucalyptus text */
-  --text: #24312c;            /* charcoal green */
-  --accent: #8fb3a2;          /* sage accent */
-  --accent-soft: #e3efe9;     /* very light sage */
-  --ok: #6fa58c;              /* muted green success */
-  --bad: #c07a6a;             /* muted clay */
+  /* Zen teacher palette */
+  --bg: #f4f6f5;
+  --panel: #ffffff;
+  --panel-alt: #f0f3f2;
+  --line: #d8e0dc;
+  --muted: #6f7f78;
+  --text: #24312c;
+  --accent: #8fb3a2;
+  --accent-soft: #e3efe9;
+  --ok: #6fa58c;
+  --bad: #c07a6a;
   --radius: 16px;
 }
 
@@ -173,14 +173,6 @@ button.bad{
   background:#f2e3df;
   border-color:#e5c9c1;
 }
-button.ghost{
-  background:#ffffff;
-  border-color: var(--line);
-}
-button:disabled{
-  opacity:.55;
-  cursor:not-allowed;
-}
 
 /* Notes + status */
 .note{
@@ -192,23 +184,39 @@ button:disabled{
 .ok{ color: var(--ok); font-weight:900; }
 .err{ color: var(--bad); font-weight:900; }
 
-/* Preview grid */
+hr.sep{
+  border:none;
+  height:1px;
+  background: var(--line);
+  margin:16px 0;
+}
+
+/* Preview grid: fit + scroll-safe */
+.gridWrap{
+  margin-top:14px;
+  border:1px solid var(--line);
+  background: #ffffff;
+  border-radius: var(--radius);
+  padding:12px;
+  overflow:auto;               /* if it still can't fit, allow scroll */
+  -webkit-overflow-scrolling: touch;
+}
 .grid{
   display:grid;
-  gap:8px;
-  margin-top:14px;
+  gap:6px;
+  user-select:none;
+  touch-action:none;
+  width:max-content;           /* so scroll works correctly */
+  margin:0 auto;               /* center when it fits */
 }
 .cell{
-  width:44px;
-  height:44px;
   display:flex;
   align-items:center;
   justify-content:center;
-  border-radius:14px;
+  border-radius:12px;
   background:#f7fbf9;
   border:1px solid var(--line);
   font-weight:900;
-  font-size:1.05rem;
   letter-spacing:.4px;
 }
 
@@ -234,33 +242,6 @@ button:disabled{
   border:1px solid var(--line);
   background:#ffffff;
 }
-
-/* Small utility row */
-.toolrow{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:center;
-  margin-top:12px;
-}
-.inline{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap:wrap;
-}
-.small{
-  font-size:.9rem;
-}
-.mono{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-hr.sep{
-  border:none;
-  height:1px;
-  background: var(--line);
-  margin:16px 0;
-}
 </style>
 </head>
 
@@ -270,7 +251,7 @@ hr.sep{
     <b>Word Search Builder</b>
     <span class="badge">Teacher Mode</span>
   </div>
-  <div class="sub">Paste words → auto-generate a grid → preview → download student HTML</div>
+  <div class="sub">Paste words → preview → download HTML for students</div>
 </header>
 
 <main>
@@ -282,7 +263,8 @@ hr.sep{
     </div>
 
     <div class="bd">
-      <label>Game file name</label>
+      <label>Student file name</label>
+      <div class="note">This becomes the downloaded file name (example: <b>library-week1.html</b>).</div>
       <input id="slug" value="wordsearch-library-week1" autocomplete="off">
 
       <div class="options" aria-label="Options">
@@ -297,28 +279,20 @@ hr.sep{
       </div>
 
       <label>Word list (one per line)</label>
-      <div class="note">Tip: you can paste messy lists too — we clean them to letters only.</div>
+      <div class="note">We’ll clean to letters only and remove duplicates.</div>
       <textarea id="wordsText" placeholder="LIBRARY&#10;BOOK&#10;READING&#10;AUTHOR&#10;SHELF"></textarea>
 
       <div class="btnrow">
         <button class="good" id="btnPreview" type="button">Preview</button>
-        <button class="primary" id="btnDownload" type="button">Generate & Download Student HTML</button>
-        <button class="ghost" id="btnSavePreset" type="button">Save preset</button>
+        <button class="primary" id="btnDownload" type="button">Download Student HTML</button>
         <button class="bad" id="btnClear" type="button">Clear</button>
-      </div>
-
-      <div class="toolrow">
-        <button class="ghost" id="btnCopyLink" type="button" disabled>Copy student link</button>
-        <span class="note small">Your student link is based on your GitHub Pages URL + the filename.</span>
       </div>
 
       <hr class="sep">
 
       <div class="note">
-        <b>No grid required.</b> The grid is generated automatically. (This page is teacher-facing only.)
+        <b>How teachers use it:</b> Download the HTML file, then upload it to your class website/LMS as a web page/file.
       </div>
-
-      <div class="note small" id="linkHint" style="margin-top:10px;"></div>
     </div>
   </section>
 
@@ -331,7 +305,10 @@ hr.sep{
 
     <div class="bd">
       <div class="note" id="previewStatus">Click <b>Preview</b>.</div>
-      <div id="gridPreview" class="grid"></div>
+
+      <div class="gridWrap" aria-label="Preview grid area">
+        <div id="gridPreview" class="grid"></div>
+      </div>
 
       <div class="panel">
         <h3>Words</h3>
@@ -345,8 +322,6 @@ hr.sep{
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-
-  const STORAGE_KEY = "ws_builder_preset_v1";
 
   const slugEl = $('slug');
   const wordsEl = $('wordsText');
@@ -363,10 +338,6 @@ hr.sep{
   const btnPreview = $('btnPreview');
   const btnDownload = $('btnDownload');
   const btnClear = $('btnClear');
-  const btnSavePreset = $('btnSavePreset');
-  const btnCopyLink = $('btnCopyLink');
-
-  const linkHint = $('linkHint');
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -464,10 +435,17 @@ hr.sep{
     return {ok:false, reason:'Could not fit all words. Try fewer/shorter words or turn off diagonals/backwards.'};
   }
 
+  // KEY CHANGE: more aggressive cell sizing to fit; also scroll-safe via .gridWrap
   function renderPreview(grid, words){
     const rows=grid.length, cols=grid[0].length;
-    const wrapW = gridPrev.parentElement.getBoundingClientRect().width;
-    const cellSize = Math.max(30, Math.min(64, Math.floor((wrapW - (cols-1)*8) / cols)));
+
+    // width available inside the gridWrap (padding accounted roughly)
+    const wrap = gridPrev.parentElement;
+    const wrapW = Math.max(260, wrap.getBoundingClientRect().width - 10);
+
+    // compute size to fit width, but allow to get quite small
+    const gap = 6;
+    const cellSize = Math.max(18, Math.min(44, Math.floor((wrapW - (cols-1)*gap) / cols)));
 
     gridPrev.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
     gridPrev.innerHTML='';
@@ -477,6 +455,7 @@ hr.sep{
       d.className='cell';
       d.style.width=cellSize+'px';
       d.style.height=cellSize+'px';
+      d.style.fontSize = Math.max(12, Math.floor(cellSize * 0.45)) + 'px';
       d.textContent=grid[r][c];
       gridPrev.appendChild(d);
     }
@@ -486,7 +465,7 @@ hr.sep{
     prevInfo.textContent = `Grid: ${rows}×${cols} • Words: ${words.length}`;
   }
 
-  // Student HTML (currently minimal data dump; can be replaced with full playable UI next)
+  // Student HTML (still minimal data dump in this version)
   function studentHTML(data, title){
     const safeJson = JSON.stringify(data).replace(/</g,'\\u003c').replace(/>/g,'\\u003e');
     const safeTitle = esc(title||'Word Search');
@@ -507,54 +486,6 @@ hr.sep{
     URL.revokeObjectURL(url);
   }
 
-  function getPagesBaseURL() {
-    // Works for GitHub Pages: https://user.github.io/repo/...
-    // Using current location as best guess.
-    const u = new URL(window.location.href);
-    // If we are already at /repo/ or /repo/index.html, base is that directory.
-    // Ensure trailing slash.
-    const path = u.pathname.endsWith('/') ? u.pathname : u.pathname.replace(/[^/]+$/, '');
-    return `${u.origin}${path}`;
-  }
-
-  function updateLinkUI() {
-    const slug = sanitizeSlug(slugEl.value);
-    const base = getPagesBaseURL();
-    const full = `${base}${slug}.html`;
-    linkHint.innerHTML = `Student link (after you upload the downloaded file to the same repo): <span class="mono">${esc(full)}</span>`;
-    btnCopyLink.disabled = false;
-    btnCopyLink.dataset.link = full;
-  }
-
-  function savePreset() {
-    const preset = {
-      slug: sanitizeSlug(slugEl.value),
-      diagonals: !!optDiag.checked,
-      backwards: !!optBack.checked,
-      words: wordsEl.value
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(preset));
-    diagEl.innerHTML = `<span class="ok">Saved preset.</span>`;
-  }
-
-  function loadPresetIfExists() {
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw) return;
-      const p = JSON.parse(raw);
-      if(p && typeof p === 'object'){
-        if(p.slug) slugEl.value = p.slug;
-        if(typeof p.diagonals === 'boolean') optDiag.checked = p.diagonals;
-        if(typeof p.backwards === 'boolean') optBack.checked = p.backwards;
-        if(typeof p.words === 'string') wordsEl.value = p.words;
-        diagEl.innerHTML = `<span class="ok">Loaded saved preset.</span>`;
-        updateLinkUI();
-      }
-    } catch(e){
-      // ignore
-    }
-  }
-
   function build(){
     slugEl.value = sanitizeSlug(slugEl.value);
     const words = cleanWords(wordsEl.value);
@@ -569,7 +500,6 @@ hr.sep{
     if(!gen.ok){ diagEl.innerHTML=`<span class="err">${esc(gen.reason)}</span>`; return null; }
 
     diagEl.innerHTML = `<span class="ok">Auto grid generated:</span> ${gen.size}×${gen.size}`;
-    updateLinkUI();
     return { grid: gen.grid, words };
   }
 
@@ -580,7 +510,6 @@ hr.sep{
     return data;
   }
 
-  // Events
   btnPreview.addEventListener('click', doPreview);
 
   btnDownload.addEventListener('click', () => {
@@ -589,26 +518,6 @@ hr.sep{
     const title = slug.replace(/-/g,' ').replace(/\b\w/g, ch => ch.toUpperCase());
     download(`${slug}.html`, studentHTML(data, title));
     diagEl.innerHTML = `<span class="ok">Downloaded:</span> ${esc(slug)}.html`;
-    updateLinkUI();
-  });
-
-  btnSavePreset.addEventListener('click', savePreset);
-
-  btnCopyLink.addEventListener('click', async () => {
-    const link = btnCopyLink.dataset.link || '';
-    if(!link) return;
-    try{
-      await navigator.clipboard.writeText(link);
-      diagEl.innerHTML = `<span class="ok">Copied student link.</span>`;
-    } catch(e){
-      // fallback
-      prompt('Copy this link:', link);
-    }
-  });
-
-  slugEl.addEventListener('input', () => {
-    slugEl.value = sanitizeSlug(slugEl.value);
-    updateLinkUI();
   });
 
   btnClear.addEventListener('click', () => {
@@ -619,14 +528,17 @@ hr.sep{
     stats.innerHTML=''; prevInfo.textContent='No preview yet';
     prevStatus.textContent='Cleared.';
     diagEl.textContent='Ready';
-    btnCopyLink.disabled = true;
-    btnCopyLink.dataset.link = '';
-    linkHint.textContent = '';
   });
 
-  // Initial
-  loadPresetIfExists();
-  updateLinkUI();
+  // Recompute sizing on resize so it continues to fit
+  window.addEventListener('resize', () => {
+    // only re-render if there is already a preview on screen
+    if (gridPrev.children.length > 0) {
+      const words = cleanWords(wordsEl.value);
+      const data = build();
+      if (data) renderPreview(data.grid, data.words);
+    }
+  });
 })();
 </script>
 
