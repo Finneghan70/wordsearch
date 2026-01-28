@@ -173,6 +173,9 @@ button.bad{
   background:#f2e3df;
   border-color:#e5c9c1;
 }
+button.secondary{
+  background:#ffffff;
+}
 
 /* Notes + status */
 .note{
@@ -198,7 +201,7 @@ hr.sep{
   background: #ffffff;
   border-radius: var(--radius);
   padding:12px;
-  overflow:auto;               /* if it still can't fit, allow scroll */
+  overflow:auto;
   -webkit-overflow-scrolling: touch;
 }
 .grid{
@@ -206,8 +209,8 @@ hr.sep{
   gap:6px;
   user-select:none;
   touch-action:none;
-  width:max-content;           /* so scroll works correctly */
-  margin:0 auto;               /* center when it fits */
+  width:max-content;
+  margin:0 auto;
 }
 .cell{
   display:flex;
@@ -242,6 +245,20 @@ hr.sep{
   border:1px solid var(--line);
   background:#ffffff;
 }
+.smallHelp{
+  font-size:.9rem;
+  color: var(--muted);
+  margin-top:10px;
+}
+.codebox{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:.9rem;
+  background:#fff;
+  border:1px dashed var(--line);
+  padding:10px 12px;
+  border-radius:12px;
+  overflow:auto;
+}
 </style>
 </head>
 
@@ -263,8 +280,11 @@ hr.sep{
     </div>
 
     <div class="bd">
+      <label>Student game title</label>
+      <input id="title" value="Word Search" autocomplete="off">
+
       <label>Student file name</label>
-      <div class="note">This becomes the downloaded file name (example: <b>library-week1.html</b>).</div>
+      <div class="note">Downloaded file name (example: <b>library-week1.html</b>).</div>
       <input id="slug" value="wordsearch-library-week1" autocomplete="off">
 
       <div class="options" aria-label="Options">
@@ -279,11 +299,12 @@ hr.sep{
       </div>
 
       <label>Word list (one per line)</label>
-      <div class="note">We’ll clean to letters only and remove duplicates.</div>
+      <div class="note">We clean to letters only and remove duplicates.</div>
       <textarea id="wordsText" placeholder="LIBRARY&#10;BOOK&#10;READING&#10;AUTHOR&#10;SHELF"></textarea>
 
       <div class="btnrow">
         <button class="good" id="btnPreview" type="button">Preview</button>
+        <button class="secondary" id="btnPreviewStudent" type="button">Preview Student Game</button>
         <button class="primary" id="btnDownload" type="button">Download Student HTML</button>
         <button class="bad" id="btnClear" type="button">Clear</button>
       </div>
@@ -291,7 +312,16 @@ hr.sep{
       <hr class="sep">
 
       <div class="note">
-        <b>How teachers use it:</b> Download the HTML file, then upload it to your class website/LMS as a web page/file.
+        <b>Important:</b> If your teacher site is <b>showing code</b>, it’s because the editor is displaying HTML as text or stripping scripts.
+        Best workflow: <b>Download Student HTML</b> → upload/host it → embed with an iframe.
+      </div>
+
+      <div class="smallHelp" style="margin-top:10px;">
+        Optional iframe snippet (edit the <b>src</b> to where you host the file):
+      </div>
+      <div class="codebox" id="iframeSnippet"></div>
+      <div class="btnrow" style="margin-top:10px;">
+        <button class="secondary" id="btnCopyIframe" type="button">Copy iframe snippet</button>
       </div>
     </div>
   </section>
@@ -323,23 +353,36 @@ hr.sep{
 (() => {
   const $ = (id) => document.getElementById(id);
 
-  const slugEl = $('slug');
-  const wordsEl = $('wordsText');
-  const diagEl = $('diag');
-  const prevInfo = $('previewInfo');
-  const prevStatus = $('previewStatus');
-  const gridPrev = $('gridPreview');
+  const titleEl   = $('title');
+  const slugEl    = $('slug');
+  const wordsEl   = $('wordsText');
+  const diagEl    = $('diag');
+  const prevInfo  = $('previewInfo');
+  const prevStatus= $('previewStatus');
+  const gridPrev  = $('gridPreview');
   const wordsPrev = $('wordsPreview');
-  const stats = $('stats');
+  const stats     = $('stats');
 
-  const optDiag = $('optDiagonals');
-  const optBack = $('optBackwards');
+  const optDiag   = $('optDiagonals');
+  const optBack   = $('optBackwards');
 
-  const btnPreview = $('btnPreview');
-  const btnDownload = $('btnDownload');
-  const btnClear = $('btnClear');
+  const btnPreview        = $('btnPreview');
+  const btnPreviewStudent = $('btnPreviewStudent');
+  const btnDownload       = $('btnDownload');
+  const btnClear          = $('btnClear');
 
-  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  const iframeSnippetEl = $('iframeSnippet');
+  const btnCopyIframe   = $('btnCopyIframe');
+
+  // Holds the last generated puzzle so Download/Student Preview works without re-generating
+  let last = null; // { title, slug, words, grid, placements, size }
+
+  function esc(s){
+    return String(s ?? "")
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
+  }
 
   function sanitizeSlug(s) {
     const cleaned = String(s||'').trim().toLowerCase()
@@ -356,15 +399,27 @@ hr.sep{
       .map(s=>s.trim()).filter(Boolean)
       .map(s=>s.replace(/[^A-Za-z]/g,'').toUpperCase())
       .filter(s=>s.length>=2);
-    return [...new Set(list)];
+
+    // unique, keep order
+    const seen = new Set();
+    const out = [];
+    for(const w of list){
+      if(!seen.has(w)){
+        seen.add(w);
+        out.push(w);
+      }
+    }
+    return out;
   }
 
   function randInt(n){ return Math.floor(Math.random()*n); }
   function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=randInt(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
   function pickDirections(diagonals, backwards){
+    // Always include forward E and S
     const dirs=[{dr:0,dc:1},{dr:1,dc:0}];
     if(diagonals) dirs.push({dr:1,dc:1},{dr:1,dc:-1});
+
     if(backwards){
       dirs.push({dr:0,dc:-1},{dr:-1,dc:0});
       if(diagonals) dirs.push({dr:-1,dc:-1},{dr:-1,dc:1});
@@ -373,13 +428,16 @@ hr.sep{
   }
 
   function autoSize(words){
-    const longest=Math.max(...words.map(w=>w.length));
-    const count=words.length;
-    const base=Math.max(longest+2, Math.ceil(Math.sqrt(count)*4));
+    const longest = Math.max(...words.map(w=>w.length));
+    const count = words.length;
+    // tuned for classroom word lists
+    const base = Math.max(longest + 2, Math.ceil(Math.sqrt(count) * 4));
     return Math.max(8, Math.min(25, base));
   }
 
-  function emptyGrid(n){ return Array.from({length:n},()=>Array.from({length:n},()=>'')); }
+  function emptyGrid(n){
+    return Array.from({length:n},()=>Array.from({length:n},()=>'')); 
+  }
 
   function canPlace(g,w,r0,c0,dr,dc){
     const n=g.length;
@@ -391,73 +449,106 @@ hr.sep{
     }
     return true;
   }
-  function place(g,w,r0,c0,dr,dc){ for(let i=0;i<w.length;i++) g[r0+dr*i][c0+dc*i]=w[i]; }
+
+  function place(g,w,r0,c0,dr,dc){
+    const cells = [];
+    for(let i=0;i<w.length;i++){
+      const r = r0 + dr*i;
+      const c = c0 + dc*i;
+      g[r][c] = w[i];
+      cells.push({r,c});
+    }
+    return cells;
+  }
 
   function fillRandom(g){
     const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    for(let r=0;r<g.length;r++) for(let c=0;c<g.length;c++)
-      if(!g[r][c]) g[r][c]=letters[randInt(letters.length)];
+    for(let r=0;r<g.length;r++){
+      for(let c=0;c<g.length;c++){
+        if(!g[r][c]) g[r][c]=letters[randInt(letters.length)];
+      }
+    }
   }
 
   function generate(words, diagonals, backwards){
-    const dirs=pickDirections(diagonals, backwards);
-    const sorted=[...words].sort((a,b)=>b.length-a.length);
-    const start=autoSize(words);
+    const dirs = pickDirections(diagonals, backwards);
+    const sorted = [...words].sort((a,b)=>b.length-a.length);
+    const start = autoSize(words);
 
+    // Try increasing sizes up to +5 (6 total sizes)
     for(let bump=0;bump<6;bump++){
-      const n=start+bump;
-      for(let attempt=0;attempt<60;attempt++){
-        const g=emptyGrid(n);
-        let ok=true;
+      const n = start + bump;
+
+      // Try multiple full-layout attempts per size
+      for(let attempt=0;attempt<70;attempt++){
+        const g = emptyGrid(n);
+        const placements = [];
+        let ok = true;
 
         for(const w of sorted){
-          let placedOk=false;
-          const dirOrder=shuffle([...dirs]);
+          let placedOk = false;
+          const dirOrder = shuffle([...dirs]);
 
-          for(let t=0;t<250;t++){
-            const {dr,dc}=dirOrder[randInt(dirOrder.length)];
+          for(let t=0;t<300;t++){
+            const {dr,dc} = dirOrder[randInt(dirOrder.length)];
+
             const rMin = dr===-1 ? (w.length-1) : 0;
-            const rMax = dr===1 ? (n-w.length) : (n-1);
+            const rMax = dr===1  ? (n-w.length) : (n-1);
             const cMin = dc===-1 ? (w.length-1) : 0;
-            const cMax = dc===1 ? (n-w.length) : (n-1);
-            if(rMin>rMax||cMin>cMax) continue;
-            const r0=rMin+randInt(rMax-rMin+1);
-            const c0=cMin+randInt(cMax-cMin+1);
+            const cMax = dc===1  ? (n-w.length) : (n-1);
 
-            if(canPlace(g,w,r0,c0,dr,dc)){ place(g,w,r0,c0,dr,dc); placedOk=true; break; }
+            if(rMin>rMax || cMin>cMax) continue;
+
+            const r0 = rMin + randInt(rMax - rMin + 1);
+            const c0 = cMin + randInt(cMax - cMin + 1);
+
+            if(canPlace(g,w,r0,c0,dr,dc)){
+              const cells = place(g,w,r0,c0,dr,dc);
+              placements.push({ word: w, cells });
+              placedOk = true;
+              break;
+            }
           }
+
           if(!placedOk){ ok=false; break; }
         }
 
-        if(ok){ fillRandom(g); return {ok:true, grid:g, size:n}; }
+        if(ok){
+          fillRandom(g);
+          return { ok:true, grid:g, size:n, placements };
+        }
       }
     }
-    return {ok:false, reason:'Could not fit all words. Try fewer/shorter words or turn off diagonals/backwards.'};
+
+    return {
+      ok:false,
+      reason:'Could not fit all words. Try fewer/shorter words or turn off diagonals/backwards.'
+    };
   }
 
-  // KEY CHANGE: more aggressive cell sizing to fit; also scroll-safe via .gridWrap
   function renderPreview(grid, words){
-    const rows=grid.length, cols=grid[0].length;
+    const rows = grid.length;
+    const cols = grid[0].length;
 
-    // width available inside the gridWrap (padding accounted roughly)
     const wrap = gridPrev.parentElement;
     const wrapW = Math.max(260, wrap.getBoundingClientRect().width - 10);
 
-    // compute size to fit width, but allow to get quite small
     const gap = 6;
     const cellSize = Math.max(18, Math.min(44, Math.floor((wrapW - (cols-1)*gap) / cols)));
 
     gridPrev.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-    gridPrev.innerHTML='';
+    gridPrev.innerHTML = '';
 
-    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
-      const d=document.createElement('div');
-      d.className='cell';
-      d.style.width=cellSize+'px';
-      d.style.height=cellSize+'px';
-      d.style.fontSize = Math.max(12, Math.floor(cellSize * 0.45)) + 'px';
-      d.textContent=grid[r][c];
-      gridPrev.appendChild(d);
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const d=document.createElement('div');
+        d.className='cell';
+        d.style.width=cellSize+'px';
+        d.style.height=cellSize+'px';
+        d.style.fontSize = Math.max(12, Math.floor(cellSize * 0.45)) + 'px';
+        d.textContent=grid[r][c];
+        gridPrev.appendChild(d);
+      }
     }
 
     wordsPrev.innerHTML = words.map(w=>`<span class="pill">${esc(w)}</span>`).join(' ');
@@ -465,10 +556,11 @@ hr.sep{
     prevInfo.textContent = `Grid: ${rows}×${cols} • Words: ${words.length}`;
   }
 
-   // ============================
+  // ============================
   // Student HTML (FULL playable game)
   // ============================
   function studentHTML(data, title){
+    // Note: esc() already HTML-escapes for title; payload escapes '<' to avoid </script> breaks.
     const safeTitle = esc(title || 'Word Search');
     const payload = JSON.stringify(data).replace(/</g,'\\u003c');
 
@@ -486,11 +578,13 @@ hr.sep{
   --line:#d8e0dc;
   --muted:#6f7f78;
   --text:#24312c;
+  --accent:#8fb3a2;
   --accentSoft:#e3efe9;
   --found:#8fb3a2;
   --active:#cfe6dc;
   --radius:16px;
 }
+*{ box-sizing:border-box; }
 body{
   margin:0;
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
@@ -534,6 +628,8 @@ main{
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
 }
 .status{
   font-size:.95rem;
@@ -547,6 +643,11 @@ main{
   border-radius:14px;
   font-weight:900;
   cursor:pointer;
+}
+.btn.primary{
+  background: var(--accent);
+  color:#fff;
+  border-color: var(--accent);
 }
 .gridWrap{
   padding:12px;
@@ -597,14 +698,18 @@ main{
 <body>
 <header>
   <h1>${safeTitle}</h1>
-  <div class="sub">Drag across letters to find words</div>
+  <div class="sub">Drag across letters in a straight line to find words.</div>
 </header>
 
 <main>
   <section class="card">
     <div class="cardHd">
       <div class="status" id="status">Find all the words.</div>
-      <button class="btn" id="btnReset">Reset</button>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" id="btnClear">Clear</button>
+        <button class="btn primary" id="btnReveal">Reveal</button>
+        <button class="btn" id="btnReset">Reset</button>
+      </div>
     </div>
     <div class="gridWrap">
       <div id="grid" class="grid"></div>
@@ -629,6 +734,8 @@ const gridEl = document.getElementById('grid');
 const wordsEl = document.getElementById('words');
 const statusEl = document.getElementById('status');
 const progressEl = document.getElementById('progress');
+const btnClear = document.getElementById('btnClear');
+const btnReveal = document.getElementById('btnReveal');
 const btnReset = document.getElementById('btnReset');
 
 const rows = DATA.grid.length;
@@ -637,6 +744,16 @@ const cols = DATA.grid[0].length;
 let startCell = null;
 let activeCells = [];
 const foundWords = new Set();
+
+// Build placement signature map so only real placed words count
+// signature: "r,c|r,c|..."
+const placementMap = new Map();
+for(const p of DATA.placements){
+  const sig = p.cells.map(x => x.r + ',' + x.c).join('|');
+  placementMap.set(sig, p.word);
+  const revSig = [...p.cells].reverse().map(x => x.r + ',' + x.c).join('|');
+  placementMap.set(revSig, p.word);
+}
 
 function buildGrid(){
   const gap = 6;
@@ -681,7 +798,8 @@ function updateProgress(){
 }
 
 function cellAt(r,c){
-  return gridEl.children[r*cols+c];
+  // children are row-major in buildGrid()
+  return gridEl.children[r*cols + c];
 }
 
 function clearActive(){
@@ -689,73 +807,113 @@ function clearActive(){
   activeCells=[];
 }
 
+function isStraightLine(r0,c0,r1,c1){
+  const dr = r1 - r0;
+  const dc = c1 - c0;
+  if(dr === 0 && dc !== 0) return true;
+  if(dc === 0 && dr !== 0) return true;
+  return Math.abs(dr) === Math.abs(dc);
+}
+
 function setActiveLine(r0,c0,r1,c1){
   clearActive();
-  const dr=Math.sign(r1-r0);
-  const dc=Math.sign(c1-c0);
 
-  if(!((dr===0&&dc!==0)||(dr!==0&&dc===0)||(Math.abs(r1-r0)===Math.abs(c1-c0)))) return;
+  if(!isStraightLine(r0,c0,r1,c1)) return;
+
+  const dr = Math.sign(r1-r0);
+  const dc = Math.sign(c1-c0);
 
   let r=r0,c=c0;
   while(true){
-    const cell=cellAt(r,c);
+    const cell = cellAt(r,c);
+    // don’t overwrite found visuals, but allow selection feedback anyway
     cell.classList.add('active');
     activeCells.push(cell);
-    if(r===r1&&c===c1) break;
-    r+=dr; c+=dc;
+    if(r===r1 && c===c1) break;
+    r += dr;
+    c += dc;
   }
 }
 
 function commit(){
-  const str=activeCells.map(c=>c.textContent).join('');
-  const rev=str.split('').reverse().join('');
-  let match=null;
-
-  for(const w of DATA.words){
-    if(!foundWords.has(w)&&(w===str||w===rev)){ match=w; break; }
+  if(activeCells.length < 2){
+    clearActive();
+    return;
   }
 
-  if(match){
+  const sig = activeCells.map(c => c.dataset.r + ',' + c.dataset.c).join('|');
+  const match = placementMap.get(sig);
+
+  if(match && !foundWords.has(match)){
     foundWords.add(match);
+
     activeCells.forEach(c=>{
       c.classList.remove('active');
       c.classList.add('found');
     });
-    const pill=wordsEl.querySelector(\`.word[data-word="\${CSS.escape(match)}"]\`);
+
+    // mark word chip
+    const pill = wordsEl.querySelector(\`.word[data-word="\${CSS.escape(match)}"]\`);
     if(pill) pill.classList.add('found');
-    statusEl.textContent=\`Found: \${match}\`;
+
+    statusEl.textContent = \`Found: \${match}\`;
     updateProgress();
-    if(foundWords.size===DATA.words.length){
-      statusEl.textContent='🎉 All words found!';
+
+    if(foundWords.size === DATA.words.length){
+      statusEl.textContent = '🎉 All words found!';
     }
-  }else{
+  } else {
+    statusEl.textContent = 'Try again.';
     clearActive();
   }
 }
 
-gridEl.addEventListener('pointerdown',e=>{
-  const cell=e.target.closest('.cell');
+gridEl.addEventListener('pointerdown', (e) => {
+  const cell = e.target.closest('.cell');
   if(!cell) return;
-  startCell=cell;
+  startCell = cell;
   clearActive();
   cell.classList.add('active');
-  activeCells=[cell];
+  activeCells = [cell];
   gridEl.setPointerCapture(e.pointerId);
 });
-gridEl.addEventListener('pointermove',e=>{
+
+gridEl.addEventListener('pointermove', (e) => {
   if(!startCell) return;
-  const cell=e.target.closest('.cell');
+  const cell = e.target.closest('.cell');
   if(!cell) return;
-  setActiveLine(+startCell.dataset.r,+startCell.dataset.c,+cell.dataset.r,+cell.dataset.c);
-});
-gridEl.addEventListener('pointerup',()=>{
-  if(startCell) commit();
-  startCell=null;
+  setActiveLine(+startCell.dataset.r, +startCell.dataset.c, +cell.dataset.r, +cell.dataset.c);
 });
 
-btnReset.addEventListener('click',()=>{
+gridEl.addEventListener('pointerup', () => {
+  if(startCell) commit();
+  startCell = null;
+});
+
+btnClear.addEventListener('click', () => {
+  statusEl.textContent = 'Cleared.';
+  clearActive();
+});
+
+btnReveal.addEventListener('click', () => {
+  // Mark all as found using placements
+  for(const p of DATA.placements){
+    foundWords.add(p.word);
+    for(const {r,c} of p.cells){
+      const cell = cellAt(r,c);
+      cell.classList.remove('active');
+      cell.classList.add('found');
+    }
+    const pill = wordsEl.querySelector(\`.word[data-word="\${CSS.escape(p.word)}"]\`);
+    if(pill) pill.classList.add('found');
+  }
+  updateProgress();
+  statusEl.textContent = 'Revealed ✅';
+});
+
+btnReset.addEventListener('click', () => {
   foundWords.clear();
-  statusEl.textContent='Find all the words.';
+  statusEl.textContent = 'Find all the words.';
   document.querySelectorAll('.cell').forEach(c=>c.classList.remove('found','active'));
   document.querySelectorAll('.word').forEach(w=>w.classList.remove('found'));
   updateProgress();
@@ -766,16 +924,174 @@ btnReset.addEventListener('click',()=>{
   }
 
   // ============================
-  // Download helper (UNCHANGED)
+  // Download + preview helpers
   // ============================
   function download(name, text){
-    const blob=new Blob([text],{type:'text/html;charset=utf-8'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download=name;
+    const blob = new Blob([text], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(()=>URL.revokeObjectURL(url), 10_000);
   }
+
+  function openInNewTab(html){
+    const blob = new Blob([html], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(()=>URL.revokeObjectURL(url), 60_000);
+  }
+
+  async function copyToClipboard(text){
+    try{
+      await navigator.clipboard.writeText(text);
+      diagEl.innerHTML = `<span class="ok">Copied!</span>`;
+    }catch{
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      diagEl.innerHTML = `<span class="ok">Copied!</span>`;
+    }
+  }
+
+  // ============================
+  // Main actions
+  // ============================
+  function build(){
+    const title = (titleEl.value || 'Word Search').trim() || 'Word Search';
+    const slug  = sanitizeSlug(slugEl.value);
+    slugEl.value = slug;
+
+    const words = cleanWords(wordsEl.value);
+
+    if(words.length === 0){
+      diagEl.innerHTML = `<span class="err">Add at least 1 word.</span>`;
+      prevStatus.innerHTML = `Please enter words, then click <b>Preview</b>.`;
+      return null;
+    }
+
+    const diagonals = !!optDiag.checked;
+    const backwards = !!optBack.checked;
+
+    // hard filter words too long for any sane grid (safety)
+    const maxLen = Math.max(...words.map(w=>w.length));
+    if(maxLen > 30){
+      diagEl.innerHTML = `<span class="err">A word is very long. Shorten it.</span>`;
+      return null;
+    }
+
+    const gen = generate(words, diagonals, backwards);
+    if(!gen.ok){
+      diagEl.innerHTML = `<span class="err">Not fit.</span>`;
+      prevStatus.innerHTML = `<span class="err">${esc(gen.reason)}</span>`;
+      return null;
+    }
+
+    last = {
+      title,
+      slug,
+      words,               // original cleaned list
+      grid: gen.grid,
+      placements: gen.placements,
+      size: gen.size
+    };
+
+    // Render teacher preview (grid + pills)
+    renderPreview(last.grid, words);
+
+    prevStatus.innerHTML = `<span class="ok">Preview ready.</span> You can now preview the student game or download.`;
+    diagEl.innerHTML = `<span class="ok">Generated</span>`;
+    return last;
+  }
+
+  function buildStudentData(){
+    if(!last) return null;
+
+    // Ensure we only include words actually placed (placements order)
+    const placedWords = last.placements.map(p => p.word);
+
+    return {
+      grid: last.grid,
+      words: placedWords,
+      placements: last.placements
+    };
+  }
+
+  function refreshIframeSnippet(){
+    const s = sanitizeSlug(slugEl.value);
+    iframeSnippetEl.textContent =
+`<iframe
+  src="${s}.html"
+  style="width:100%; height:820px; border:0; border-radius:16px;"
+  loading="lazy"
+  allow="fullscreen"
+></iframe>`;
+  }
+
+  // ============================
+  // Events
+  // ============================
+  btnPreview.addEventListener('click', () => {
+    const built = build();
+    if(!built) return;
+    refreshIframeSnippet();
+  });
+
+  btnPreviewStudent.addEventListener('click', () => {
+    if(!last){
+      const built = build();
+      if(!built) return;
+    }
+    const data = buildStudentData();
+    const html = studentHTML(data, last.title);
+    openInNewTab(html);
+    diagEl.innerHTML = `<span class="ok">Opened student preview</span>`;
+  });
+
+  btnDownload.addEventListener('click', () => {
+    if(!last){
+      const built = build();
+      if(!built) return;
+    }
+    const data = buildStudentData();
+    const html = studentHTML(data, last.title);
+    const filename = sanitizeSlug(last.slug) + '.html';
+    download(filename, html);
+    diagEl.innerHTML = `<span class="ok">Downloaded</span>`;
+    refreshIframeSnippet();
+  });
+
+  btnClear.addEventListener('click', () => {
+    wordsEl.value = '';
+    last = null;
+    gridPrev.innerHTML = '';
+    wordsPrev.innerHTML = '';
+    stats.innerHTML = '';
+    prevInfo.textContent = 'No preview yet';
+    prevStatus.innerHTML = `Cleared. Click <b>Preview</b> when ready.`;
+    diagEl.textContent = 'Ready';
+    refreshIframeSnippet();
+  });
+
+  slugEl.addEventListener('blur', refreshIframeSnippet);
+  titleEl.addEventListener('blur', () => { diagEl.textContent = 'Ready'; });
+
+  btnCopyIframe.addEventListener('click', () => {
+    refreshIframeSnippet();
+    copyToClipboard(iframeSnippetEl.textContent);
+  });
+
+  // Init
+  refreshIframeSnippet();
+})();
+</script>
+
+</body>
+</html>
