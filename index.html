@@ -7,398 +7,114 @@
 
 <style>
 :root{
-  /* Zen teacher palette */
-  --bg: #f4f6f5;
-  --panel: #ffffff;
-  --panel-alt: #f0f3f2;
-  --line: #d8e0dc;
-  --muted: #6f7f78;
-  --text: #24312c;
-  --accent: #8fb3a2;
-  --accent-soft: #e3efe9;
-  --ok: #2f7b5d;
-  --bad: #c07a6a;
-  --radius: 16px;
+  --bg:#f4f6f5; --panel:#ffffff; --panel-alt:#f0f3f2; --line:#d8e0dc;
+  --muted:#6f7f78; --text:#24312c; --accent:#8fb3a2; --accent-soft:#e3efe9;
+  --ok:#2f7b5d; --bad:#c07a6a; --radius:16px;
 }
+html{ font-size:18px; background:var(--bg); }
+body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
 
-html{ font-size:18px; background: var(--bg); }
-body{
-  margin:0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-
-/* Header */
 header{
   padding:18px 20px;
   border-bottom:1px solid var(--line);
-  background: linear-gradient(180deg, #ffffff, #f6faf8);
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:14px;
+  background:linear-gradient(180deg,#ffffff,#f6faf8);
+  display:flex; justify-content:space-between; align-items:center; gap:14px;
 }
-header .left{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-header b{
-  font-size:1.05rem;
-  letter-spacing:.3px;
-}
+header .left{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+header b{ font-size:1.05rem; letter-spacing:.3px; }
 .badge{
-  font-size:.85rem;
-  font-weight:800;
-  padding:6px 10px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  background: var(--accent-soft);
-  color: var(--text);
+  font-size:.85rem; font-weight:800; padding:6px 10px; border-radius:999px;
+  border:1px solid var(--line); background:var(--accent-soft); color:var(--text);
 }
-.sub{
-  font-size:.95rem;
-  color: var(--muted);
-  line-height:1.25;
-}
+.badge.ok{ background:#dfeee7; border-color:#c8e0d4; color:var(--ok); }
+.badge.err{ background:#f2e3df; border-color:#e5c9c1; color:var(--bad); }
+.sub{ font-size:.95rem; color:var(--muted); line-height:1.25; }
 
-/* Layout */
 main{
-  max-width:1180px;
-  margin:0 auto;
-  padding:18px;
-  display:grid;
-  grid-template-columns:460px 1fr;
-  gap:18px;
-  align-items:start;
+  max-width:1180px; margin:0 auto; padding:18px;
+  display:grid; grid-template-columns:460px 1fr; gap:18px; align-items:start;
 }
-@media (max-width:1020px){
-  main{ grid-template-columns:1fr; }
-}
+@media (max-width:1020px){ main{ grid-template-columns:1fr; } }
 
-/* Cards */
 .card{
-  background: var(--panel);
-  border:1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 22px rgba(0,0,0,.06);
-  overflow:hidden;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:0 8px 22px rgba(0,0,0,.06); overflow:hidden;
 }
 .hd{
-  padding:14px 16px;
-  border-bottom:1px solid var(--line);
-  background: var(--panel-alt);
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
+  padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel-alt);
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
 }
 .hd b{ font-size:1rem; }
 .bd{ padding:16px; }
 
-/* Text + inputs */
-label{
-  display:block;
-  font-size:.95rem;
-  color: var(--muted);
-  margin:14px 0 8px;
-}
+label{ display:block; font-size:.95rem; color:var(--muted); margin:14px 0 8px; }
 input, textarea{
-  width:100%;
-  background:#ffffff;
-  border:1px solid var(--line);
-  color: var(--text);
-  border-radius:14px;
-  padding:12px 14px;
-  font-size:1rem;
+  width:100%; background:#fff; border:1px solid var(--line); color:var(--text);
+  border-radius:14px; padding:12px 14px; font-size:1rem;
 }
 textarea{
-  min-height:210px;
-  resize:vertical;
-  line-height:1.45;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  min-height:210px; resize:vertical; line-height:1.45;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 
-/* Checkbox alignment */
-.options{
-  display:grid;
-  gap:12px;
-  margin-top:14px;
-}
+.options{ display:grid; gap:12px; margin-top:14px; }
 .chk{
-  display:grid;
-  grid-template-columns: 22px 1fr;
-  align-items:center;
-  gap:12px;
-  font-size:1rem;
-  color: var(--text);
+  display:grid; grid-template-columns:22px 1fr; align-items:center; gap:12px;
+  font-size:1rem; color:var(--text);
 }
-.chk input{
-  width:18px;
-  height:18px;
-  margin:0;
-  accent-color: var(--accent);
-}
+.chk input{ width:18px; height:18px; margin:0; accent-color:var(--accent); }
 .chk span{ font-weight:600; }
 
-/* Buttons */
-.btnrow{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-  margin-top:16px;
-}
+.btnrow{ display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
 button{
-  border:1px solid var(--line);
-  background: var(--accent-soft);
-  color: var(--text);
-  padding:12px 16px;
-  border-radius:14px;
-  cursor:pointer;
-  font-weight:800;
-  font-size:1rem;
+  border:1px solid var(--line); background:var(--accent-soft); color:var(--text);
+  padding:12px 16px; border-radius:14px; cursor:pointer; font-weight:800; font-size:1rem;
 }
 button:hover{ background:#d9ebe3; }
-button.primary{
-  background: var(--accent);
-  color:#ffffff;
-  border-color: var(--accent);
-}
-button.good{
-  background:#dfeee7;
-  border-color:#c8e0d4;
-}
-button.bad{
-  background:#f2e3df;
-  border-color:#e5c9c1;
-}
-button.secondary{
-  background:#ffffff;
-}
+button.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+button.good{ background:#dfeee7; border-color:#c8e0d4; }
+button.bad{ background:#f2e3df; border-color:#e5c9c1; }
+button.secondary{ background:#fff; }
 
-/* Notes + status */
-.note{
-  font-size:.95rem;
-  color: var(--muted);
-  line-height:1.4;
-}
-.note b{ color: var(--text); }
-.ok{ color: var(--ok); font-weight:900; }
-.err{ color: var(--bad); font-weight:900; }
+.note{ font-size:.95rem; color:var(--muted); line-height:1.4; }
+.note b{ color:var(--text); }
+.ok{ color:var(--ok); font-weight:900; }
+.err{ color:var(--bad); font-weight:900; }
 
-hr.sep{
-  border:none;
-  height:1px;
-  background: var(--line);
-  margin:16px 0;
-}
+hr.sep{ border:none; height:1px; background:var(--line); margin:16px 0; }
 
-/* Preview grid */
 .gridWrap{
-  margin-top:14px;
-  border:1px solid var(--line);
-  background: #ffffff;
-  border-radius: var(--radius);
-  padding:12px;
-  overflow:auto;
-  -webkit-overflow-scrolling: touch;
+  margin-top:14px; border:1px solid var(--line); background:#fff; border-radius:var(--radius);
+  padding:12px; overflow:auto; -webkit-overflow-scrolling:touch;
 }
-.grid{
-  display:grid;
-  gap:6px;
-  user-select:none;
-  touch-action:none;
-  width:max-content;
-  margin:0 auto;
-}
+.grid{ display:grid; gap:6px; user-select:none; touch-action:none; width:max-content; margin:0 auto; }
 .cell{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:12px;
-  background:#f7fbf9;
-  border:1px solid var(--line);
-  font-weight:900;
-  letter-spacing:.4px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:12px; background:#f7fbf9; border:1px solid var(--line);
+  font-weight:900; letter-spacing:.4px;
 }
 
-/* Word panel */
 .panel{
-  background: var(--panel-alt);
-  border:1px solid var(--line);
-  border-radius: var(--radius);
-  padding:14px;
-  margin-top:16px;
+  background:var(--panel-alt); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px; margin-top:16px;
 }
-.panel h3{
-  margin:0 0 10px;
-  font-size:1rem;
-}
+.panel h3{ margin:0 0 10px; font-size:1rem; }
 .pill{
-  display:inline-block;
-  margin:6px 8px 0 0;
-  padding:8px 12px;
-  border-radius:999px;
-  font-size:.95rem;
-  font-weight:700;
-  border:1px solid var(--line);
-  background:#ffffff;
-}
-.smallHelp{
-  font-size:.9rem;
-  color: var(--muted);
-  margin-top:10px;
+  display:inline-block; margin:6px 8px 0 0; padding:8px 12px; border-radius:999px;
+  font-size:.95rem; font-weight:700; border:1px solid var(--line); background:#fff;
 }
 .codebox{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size:.9rem;
-  background:#fff;
-  border:1px dashed var(--line);
-  padding:10px 12px;
-  border-radius:12px;
-  overflow:auto;
-  white-space:pre;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.9rem; background:#fff; border:1px dashed var(--line);
+  padding:10px 12px; border-radius:12px; overflow:auto; white-space:pre;
 }
-</style>
-</head>
 
-<body>
-<header>
-  <div class="left">
-    <b>Word Search Builder</b>
-    <span class="badge">Teacher Mode</span>
-  </div>
-  <div class="sub">Paste words → preview → download HTML for students</div>
-</header>
-
-<main>
-  <!-- LEFT: Inputs -->
-  <section class="card">
-    <div class="hd">
-      <b>1) Teacher inputs</b>
-      <span class="note" id="diag">Loading…</span>
-    </div>
-
-    <div class="bd">
-      <label>Student game title</label>
-      <input id="title" value="Word Search" autocomplete="off">
-
-      <label>Student file name</label>
-      <div class="note">Downloaded file name (example: <b>library-week1.html</b>).</div>
-      <input id="slug" value="wordsearch-library-week1" autocomplete="off">
-
-      <div class="options" aria-label="Options">
-        <label class="chk">
-          <input type="checkbox" id="optDiagonals" checked>
-          <span>Allow diagonals</span>
-        </label>
-        <label class="chk">
-          <input type="checkbox" id="optBackwards" checked>
-          <span>Allow backwards</span>
-        </label>
-      </div>
-
-      <label>Word list (one per line)</label>
-      <div class="note">We clean to letters only and remove duplicates.</div>
-      <textarea id="wordsText" placeholder="LIBRARY&#10;BOOK&#10;READING&#10;AUTHOR&#10;SHELF"></textarea>
-
-      <div class="btnrow">
-        <button class="good" id="btnPreview" type="button">Preview</button>
-        <button class="secondary" id="btnPreviewStudent" type="button">Preview Student Game</button>
-        <button class="primary" id="btnDownload" type="button">Download Student HTML</button>
-        <button class="bad" id="btnClear" type="button">Clear</button>
-      </div>
-
-      <hr class="sep">
-
-      <div class="note">
-        <b>If Preview does nothing:</b> Check the top status. If you do <u>not</u> see <b>JS Loaded ✅</b>, your site/editor is blocking scripts.
-        Run this builder as a standalone <b>.html</b> file in a browser (or host it as its own page), then download the student game HTML.
-      </div>
-
-      <div class="smallHelp">iframe snippet (edit <b>src</b> to where you host the student file):</div>
-      <div class="codebox" id="iframeSnippet"></div>
-      <div class="btnrow" style="margin-top:10px;">
-        <button class="secondary" id="btnCopyIframe" type="button">Copy iframe snippet</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- RIGHT: Preview -->
-  <section class="card">
-    <div class="hd">
-      <b>2) Preview</b>
-      <span class="note" id="previewInfo">No preview yet</span>
-    </div>
-
-    <div class="bd">
-      <div class="note" id="previewStatus">Click <b>Preview</b>.</div>
-
-      <div class="gridWrap" aria-label="Preview grid area">
-        <div id="gridPreview" class="grid"></div>
-      </div>
-
-      <div class="panel">
-        <h3>Words</h3>
-        <div id="wordsPreview"></div>
-        <div class="note" id="stats" style="margin-top:12px;"></div>
-      </div>
-    </div>
-  </section>
-</main>
-
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-  const $ = (id) => document.getElementById(id);
-
-  const titleEl   = $('title');
-  const slugEl    = $('slug');
-  const wordsEl   = $('wordsText');
-  const diagEl    = $('diag');
-
-  const prevInfo  = $('previewInfo');
-  const prevStatus= $('previewStatus');
-  const gridPrev  = $('gridPreview');
-  const wordsPrev = $('wordsPreview');
-  const stats     = $('stats');
-
-  const optDiag   = $('optDiagonals');
-  const optBack   = $('optBackwards');
-
-  const btnPreview        = $('btnPreview');
-  const btnPreviewStudent = $('btnPreviewStudent');
-  const btnDownload       = $('btnDownload');
-  const btnClear          = $('btnClear');
-
-  const iframeSnippetEl = $('iframeSnippet');
-  const btnCopyIframe   = $('btnCopyIframe');
-
-  function esc(s){
-    return String(s ?? "")
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;');
-  }
-
-  function setDiagOK(msg){ diagEl.innerHTML = `<span class="ok">${esc(msg)}</span>`; }
-  function setDiagErr(msg){ diagEl.innerHTML = `<span class="err">${esc(msg)}</span>`; }
-
-  // If anything JS-breaks, show it on screen.
-  window.addEventListener('error', (e) => {
-    setDiagErr('JS error: ' + (e && e.message ? e.message : 'unknown'));
-  });
-
-  setDiagOK('JS Loaded ✅');
-
-  function sanitizeSlug(s) {
-    const cleaned = String(s||'').trim().toLowerCase()
-      .replace(/[^a-z0-9\-_\s]/g,'')
-      .replace(/\s+/g,'-')
-      .replace(/-+/g,'-')
-      .replace(/^-|-$/g,'');
-    return cleaned || 'wordsearch';
-  }
-
-  function cleanWords(raw) {
-    const list = String(raw||'
+/* Student preview modal */
+.modal{
+  position:fixed; inset:0; background:rgba(0,0,0,.35);
+  display:none; align-items:center; justify-content:center; padding:14px; z-index:9999;
+}
+.modalInner{
+  width:min(1000px, 96vw); height:min(86vh, 900px);
+  background:#fff; border-radius:18px; border:1px solid var(--line);
+  box-shadow:0 18px 60px rgba(0,
