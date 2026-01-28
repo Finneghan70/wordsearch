@@ -314,12 +314,221 @@ function doPreview(){
 }
 
 /* --- Download (simple data dump version) --- */
-function studentHTML(data,title){
+function studentHTML(data, title){
+  const safeTitle = esc(title || 'Word Search');
+  const payload = JSON.stringify(data).replace(/</g,'\\u003c');
+
   return `<!doctype html>
-<html><body>
-<pre>${esc(JSON.stringify(data,null,2))}</pre>
-</body></html>`;
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeTitle}</title>
+<style>
+:root{
+  --bg:#f4f6f5;
+  --panel:#ffffff;
+  --line:#d8e0dc;
+  --muted:#6f7f78;
+  --text:#24312c;
+  --active:#cfe6dc;
+  --found:#8fb3a2;
+  --radius:16px;
 }
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}
+header{padding:14px;background:#fff;border-bottom:1px solid var(--line);text-align:center;}
+header h1{margin:0;font-size:1.1rem;font-weight:900;}
+header .sub{margin-top:6px;font-size:.95rem;color:var(--muted);}
+main{max-width:980px;margin:0 auto;padding:14px;display:grid;gap:12px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 10px 24px rgba(0,0,0,.06);overflow:hidden;}
+.hd{padding:10px 12px;background:#f0f3f2;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.status{font-size:.95rem;color:var(--muted);}
+button{border:1px solid var(--line);background:#e3efe9;color:var(--text);padding:9px 12px;border-radius:14px;font-weight:900;cursor:pointer;}
+.wrap{padding:12px;overflow:auto;-webkit-overflow-scrolling:touch;}
+.grid{display:grid;gap:6px;user-select:none;touch-action:none;width:max-content;margin:0 auto;}
+.cell{display:flex;align-items:center;justify-content:center;border-radius:12px;background:#f7fbf9;border:1px solid var(--line);font-weight:900;letter-spacing:.4px;}
+.cell.active{background:var(--active);}
+.cell.found{background:var(--found);color:#fff;}
+.wordsWrap{padding:12px;}
+.words{display:flex;flex-wrap:wrap;gap:8px;}
+.word{padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:800;font-size:.95rem;}
+.word.found{background:var(--found);color:#fff;text-decoration:line-through;}
+</style>
+</head>
+<body>
+<header>
+  <h1>${safeTitle}</h1>
+  <div class="sub">Drag across letters to find words</div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="hd">
+      <div class="status" id="status">Find all the words.</div>
+      <button id="reset" type="button">Reset</button>
+    </div>
+    <div class="wrap">
+      <div id="grid" class="grid" aria-label="Word search grid"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="hd">
+      <div style="font-weight:900;">Words to find</div>
+      <div class="status" id="progress">0 / 0</div>
+    </div>
+    <div class="wordsWrap">
+      <div id="words" class="words"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const DATA = ${payload};
+const gridEl = document.getElementById('grid');
+const wordsEl = document.getElementById('words');
+const statusEl = document.getElementById('status');
+const progressEl = document.getElementById('progress');
+const resetBtn = document.getElementById('reset');
+
+const rows = DATA.grid.length;
+const cols = DATA.grid[0].length;
+
+let startCell = null;
+let activeCells = [];
+const found = new Set();
+
+function buildUI(){
+  const gap = 6;
+  const maxW = Math.min(window.innerWidth - 48, 980);
+  const cellSize = Math.max(24, Math.min(52, Math.floor((maxW - (cols-1)*gap) / cols)));
+
+  gridEl.style.gridTemplateColumns = \`repeat(\${cols}, \${cellSize}px)\`;
+  gridEl.innerHTML = '';
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const d=document.createElement('div');
+      d.className='cell';
+      d.textContent=DATA.grid[r][c];
+      d.dataset.r=r; d.dataset.c=c;
+      d.style.width=cellSize+'px';
+      d.style.height=cellSize+'px';
+      d.style.fontSize=Math.max(14, Math.floor(cellSize*0.48))+'px';
+      gridEl.appendChild(d);
+    }
+  }
+
+  wordsEl.innerHTML = '';
+  for(const w of DATA.words){
+    const s=document.createElement('span');
+    s.className='word';
+    s.textContent=w;
+    s.dataset.word=w;
+    wordsEl.appendChild(s);
+  }
+  updateProgress();
+}
+buildUI();
+window.addEventListener('resize', buildUI);
+
+function updateProgress(){
+  progressEl.textContent = \`\${found.size} / \${DATA.words.length}\`;
+}
+
+function cellAt(r,c){ return gridEl.children[r*cols + c]; }
+
+function clearActive(){
+  for(const c of activeCells) c.classList.remove('active');
+  activeCells = [];
+}
+
+function setActiveLine(r0,c0,r1,c1){
+  clearActive();
+  const dr = Math.sign(r1-r0);
+  const dc = Math.sign(c1-c0);
+
+  const straight =
+    (dr===0 && dc!==0) ||
+    (dr!==0 && dc===0) ||
+    (Math.abs(r1-r0)===Math.abs(c1-c0));
+
+  if(!straight) return;
+
+  let r=r0, c=c0;
+  while(true){
+    const cell = cellAt(r,c);
+    cell.classList.add('active');
+    activeCells.push(cell);
+    if(r===r1 && c===c1) break;
+    r+=dr; c+=dc;
+  }
+}
+
+function commit(){
+  if(activeCells.length < 2){ clearActive(); return; }
+
+  const str = activeCells.map(c=>c.textContent).join('');
+  const rev = str.split('').reverse().join('');
+  let match = null;
+
+  for(const w of DATA.words){
+    if(!found.has(w) && (w===str || w===rev)){
+      match = w; break;
+    }
+  }
+
+  if(match){
+    found.add(match);
+    for(const c of activeCells){
+      c.classList.remove('active');
+      c.classList.add('found');
+    }
+    const pill = wordsEl.querySelector(\`.word[data-word="\${CSS.escape(match)}"]\`);
+    if(pill) pill.classList.add('found');
+
+    updateProgress();
+    statusEl.textContent = (found.size===DATA.words.length) ? '🎉 All words found!' : \`Found: \${match}\`;
+  } else {
+    clearActive();
+  }
+}
+
+gridEl.addEventListener('pointerdown', (e)=>{
+  const cell = e.target.closest('.cell');
+  if(!cell) return;
+  startCell = cell;
+  clearActive();
+  cell.classList.add('active');
+  activeCells = [cell];
+  gridEl.setPointerCapture(e.pointerId);
+});
+
+gridEl.addEventListener('pointermove', (e)=>{
+  if(!startCell) return;
+  const cell = e.target.closest('.cell');
+  if(!cell) return;
+  setActiveLine(+startCell.dataset.r, +startCell.dataset.c, +cell.dataset.r, +cell.dataset.c);
+});
+
+gridEl.addEventListener('pointerup', ()=>{
+  if(startCell) commit();
+  startCell = null;
+});
+
+resetBtn.addEventListener('click', ()=>{
+  found.clear();
+  statusEl.textContent = 'Find all the words.';
+  for(const c of gridEl.querySelectorAll('.cell')) c.classList.remove('active','found');
+  for(const w of wordsEl.querySelectorAll('.word')) w.classList.remove('found');
+  clearActive();
+  updateProgress();
+});
+</script>
+</body>
+</html>`;
+}
+
 
 function download(name,text){
   const blob=new Blob([text],{type:'text/html;charset=utf-8'});
