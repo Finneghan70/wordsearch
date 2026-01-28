@@ -3,118 +3,341 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Word Search Builder (Teacher Mode)</title>
+<title>Word Search Builder (Teacher)</title>
 
 <style>
 :root{
-  --bg:#f4f6f5; --panel:#ffffff; --panel-alt:#f0f3f2; --line:#d8e0dc;
-  --muted:#6f7f78; --text:#24312c; --accent:#8fb3a2; --accent-soft:#e3efe9;
-  --ok:#2f7b5d; --bad:#c07a6a; --radius:16px;
+  --bg:#f4f6f5;
+  --panel:#ffffff;
+  --panelAlt:#f0f3f2;
+  --line:#d8e0dc;
+  --muted:#6f7f78;
+  --text:#24312c;
+  --accent:#8fb3a2;
+  --accentSoft:#e3efe9;
+  --radius:16px;
 }
-html{ font-size:18px; background:var(--bg); }
-body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
 
+html{ font-size:18px; background:var(--bg); }
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+/* Header */
 header{
   padding:18px 20px;
   border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg,#ffffff,#f6faf8);
-  display:flex; justify-content:space-between; align-items:center; gap:14px;
+  background:linear-gradient(180deg,#fff,#f6faf8);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-header .left{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-header b{ font-size:1.05rem; letter-spacing:.3px; }
-.badge{
-  font-size:.85rem; font-weight:800; padding:6px 10px; border-radius:999px;
-  border:1px solid var(--line); background:var(--accent-soft); color:var(--text);
-}
-.badge.ok{ background:#dfeee7; border-color:#c8e0d4; color:var(--ok); }
-.badge.err{ background:#f2e3df; border-color:#e5c9c1; color:var(--bad); }
-.sub{ font-size:.95rem; color:var(--muted); line-height:1.25; }
+header b{ font-size:1.05rem; }
+.sub{ font-size:.95rem; color:var(--muted); }
 
+/* Layout */
 main{
-  max-width:1180px; margin:0 auto; padding:18px;
-  display:grid; grid-template-columns:460px 1fr; gap:18px; align-items:start;
+  max-width:1180px;
+  margin:0 auto;
+  padding:18px;
+  display:grid;
+  grid-template-columns:460px 1fr;
+  gap:18px;
 }
-@media (max-width:1020px){ main{ grid-template-columns:1fr; } }
+@media (max-width:1000px){
+  main{ grid-template-columns:1fr; }
+}
 
+/* Cards */
 .card{
-  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:0 8px 22px rgba(0,0,0,.06); overflow:hidden;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:0 8px 22px rgba(0,0,0,.06);
 }
 .hd{
-  padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel-alt);
-  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:14px 16px;
+  border-bottom:1px solid var(--line);
+  background:var(--panelAlt);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-.hd b{ font-size:1rem; }
 .bd{ padding:16px; }
 
-label{ display:block; font-size:.95rem; color:var(--muted); margin:14px 0 8px; }
+/* Inputs */
+label{
+  display:block;
+  margin:14px 0 6px;
+  font-size:.95rem;
+  color:var(--muted);
+}
 input, textarea{
-  width:100%; background:#fff; border:1px solid var(--line); color:var(--text);
-  border-radius:14px; padding:12px 14px; font-size:1rem;
+  width:100%;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  font-size:1rem;
 }
 textarea{
-  min-height:210px; resize:vertical; line-height:1.45;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  min-height:220px;
+  resize:vertical;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.options{ display:grid; gap:12px; margin-top:14px; }
+/* Options */
+.options{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+}
 .chk{
-  display:grid; grid-template-columns:22px 1fr; align-items:center; gap:12px;
-  font-size:1rem; color:var(--text);
+  display:grid;
+  grid-template-columns:22px 1fr;
+  gap:12px;
+  align-items:center;
 }
-.chk input{ width:18px; height:18px; margin:0; accent-color:var(--accent); }
-.chk span{ font-weight:600; }
+.chk input{
+  width:18px;
+  height:18px;
+  margin:0;
+  accent-color:var(--accent);
+}
 
-.btnrow{ display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+/* Buttons */
+.btnrow{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:16px;
+}
 button{
-  border:1px solid var(--line); background:var(--accent-soft); color:var(--text);
-  padding:12px 16px; border-radius:14px; cursor:pointer; font-weight:800; font-size:1rem;
+  padding:12px 16px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:var(--accentSoft);
+  font-weight:700;
+  cursor:pointer;
 }
-button:hover{ background:#d9ebe3; }
-button.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
-button.good{ background:#dfeee7; border-color:#c8e0d4; }
-button.bad{ background:#f2e3df; border-color:#e5c9c1; }
-button.secondary{ background:#fff; }
-
-.note{ font-size:.95rem; color:var(--muted); line-height:1.4; }
-.note b{ color:var(--text); }
-.ok{ color:var(--ok); font-weight:900; }
-.err{ color:var(--bad); font-weight:900; }
-
-hr.sep{ border:none; height:1px; background:var(--line); margin:16px 0; }
-
-.gridWrap{
-  margin-top:14px; border:1px solid var(--line); background:#fff; border-radius:var(--radius);
-  padding:12px; overflow:auto; -webkit-overflow-scrolling:touch;
+button.primary{
+  background:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
 }
-.grid{ display:grid; gap:6px; user-select:none; touch-action:none; width:max-content; margin:0 auto; }
+
+/* Preview */
+.grid{
+  display:grid;
+  gap:8px;
+  margin-top:14px;
+}
 .cell{
-  display:flex; align-items:center; justify-content:center;
-  border-radius:12px; background:#f7fbf9; border:1px solid var(--line);
-  font-weight:900; letter-spacing:.4px;
+  width:44px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#f7fbf9;
+  font-weight:900;
 }
 
-.panel{
-  background:var(--panel-alt); border:1px solid var(--line); border-radius:var(--radius);
-  padding:14px; margin-top:16px;
+.words{
+  margin-top:14px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
 }
-.panel h3{ margin:0 0 10px; font-size:1rem; }
-.pill{
-  display:inline-block; margin:6px 8px 0 0; padding:8px 12px; border-radius:999px;
-  font-size:.95rem; font-weight:700; border:1px solid var(--line); background:#fff;
-}
-.codebox{
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  font-size:.9rem; background:#fff; border:1px dashed var(--line);
-  padding:10px 12px; border-radius:12px; overflow:auto; white-space:pre;
+.word{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:#fff;
+  font-weight:700;
 }
 
-/* Student preview modal */
-.modal{
-  position:fixed; inset:0; background:rgba(0,0,0,.35);
-  display:none; align-items:center; justify-content:center; padding:14px; z-index:9999;
+.note{
+  font-size:.9rem;
+  color:var(--muted);
 }
-.modalInner{
-  width:min(1000px, 96vw); height:min(86vh, 900px);
-  background:#fff; border-radius:18px; border:1px solid var(--line);
-  box-shadow:0 18px 60px rgba(0,
+</style>
+</head>
+
+<body>
+<header>
+  <b>Word Search Builder</b>
+  <div class="sub">Teacher-facing • Auto grid • Preview before download</div>
+</header>
+
+<main>
+  <!-- LEFT: INPUT -->
+  <section class="card">
+    <div class="hd"><b>Build your puzzle</b></div>
+    <div class="bd">
+      <label>Game file name</label>
+      <input id="slug" value="wordsearch-library-week1">
+
+      <label>Word list (one per line)</label>
+      <textarea id="wordsText"></textarea>
+
+      <div class="options">
+        <label class="chk">
+          <input type="checkbox" id="optDiag" checked>
+          <span>Allow diagonals</span>
+        </label>
+        <label class="chk">
+          <input type="checkbox" id="optBack" checked>
+          <span>Allow backwards</span>
+        </label>
+      </div>
+
+      <div class="btnrow">
+        <button id="btnPreview" class="primary">Clean & Preview</button>
+        <button id="btnDownload">Download HTML</button>
+      </div>
+
+      <p class="note">
+        No grid required. The grid is generated automatically from your words.
+      </p>
+    </div>
+  </section>
+
+  <!-- RIGHT: PREVIEW -->
+  <section class="card">
+    <div class="hd"><b>Preview</b></div>
+    <div class="bd">
+      <div id="previewInfo" class="note">No preview yet.</div>
+      <div id="gridPreview" class="grid"></div>
+      <div id="wordsPreview" class="words"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const slugEl = document.getElementById('slug');
+const wordsTextEl = document.getElementById('wordsText');
+const optDiagEl = document.getElementById('optDiag');
+const optBackEl = document.getElementById('optBack');
+
+const btnPreview = document.getElementById('btnPreview');
+const btnDownload = document.getElementById('btnDownload');
+
+const gridPreviewEl = document.getElementById('gridPreview');
+const wordsPreviewEl = document.getElementById('wordsPreview');
+const previewInfoEl = document.getElementById('previewInfo');
+
+function esc(s){
+  return (s||'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+function cleanWords(text){
+  return text.split(/[\n,]+/)
+    .map(w=>w.trim().toUpperCase())
+    .filter(w=>w.length>1);
+}
+
+/* --- Simple grid generator (stable) --- */
+function generateGrid(words, size){
+  const grid = Array.from({length:size},()=>Array(size).fill(''));
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+  function place(word){
+    const dirs = [
+      [0,1],[1,0],[1,1],[0,-1],[-1,0],[-1,-1],[1,-1],[-1,1]
+    ];
+    for(let t=0;t<100;t++){
+      const [dr,dc] = dirs[Math.floor(Math.random()*dirs.length)];
+      const r0 = Math.floor(Math.random()*size);
+      const c0 = Math.floor(Math.random()*size);
+      let ok=true;
+      for(let i=0;i<word.length;i++){
+        const r=r0+i*dr, c=c0+i*dc;
+        if(r<0||c<0||r>=size||c>=size||(grid[r][c]&&grid[r][c]!==word[i])){
+          ok=false; break;
+        }
+      }
+      if(ok){
+        for(let i=0;i<word.length;i++){
+          grid[r0+i*dr][c0+i*dc]=word[i];
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  words.forEach(w=>place(w));
+  for(let r=0;r<size;r++){
+    for(let c=0;c<size;c++){
+      if(!grid[r][c]) grid[r][c]=alphabet[Math.floor(Math.random()*26)];
+    }
+  }
+  return grid;
+}
+
+/* --- Preview --- */
+function doPreview(){
+  const words = cleanWords(wordsTextEl.value);
+  if(!words.length){
+    previewInfoEl.textContent = 'Add some words first.';
+    return;
+  }
+  const size = Math.max(10, Math.ceil(Math.sqrt(words.length*4)));
+  const grid = generateGrid(words, size);
+
+  previewInfoEl.textContent = `Preview (${size} × ${size})`;
+  gridPreviewEl.innerHTML='';
+  gridPreviewEl.style.gridTemplateColumns=`repeat(${size},44px)`;
+
+  grid.forEach(row=>{
+    row.forEach(ch=>{
+      const d=document.createElement('div');
+      d.className='cell';
+      d.textContent=ch;
+      gridPreviewEl.appendChild(d);
+    });
+  });
+
+  wordsPreviewEl.innerHTML='';
+  words.forEach(w=>{
+    const s=document.createElement('span');
+    s.className='word';
+    s.textContent=w;
+    wordsPreviewEl.appendChild(s);
+  });
+}
+
+/* --- Download (simple data dump version) --- */
+function studentHTML(data,title){
+  return `<!doctype html>
+<html><body>
+<pre>${esc(JSON.stringify(data,null,2))}</pre>
+</body></html>`;
+}
+
+function download(name,text){
+  const blob=new Blob([text],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=name;
+  document.body.appendChild(a);
+  a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+btnPreview.addEventListener('click', doPreview);
+btnDownload.addEventListener('click', ()=>{
+  const words = cleanWords(wordsTextEl.value);
+  const size = Math.max(10, Math.ceil(Math.sqrt(words.length*4)));
+  const grid = generateGrid(words, size);
+  download(slugEl.value+'.html', studentHTML({grid,words}, slugEl.value));
+});
+</script>
+</body>
+</html>
